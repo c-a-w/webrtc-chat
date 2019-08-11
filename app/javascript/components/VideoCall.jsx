@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData, } from './video_util';
+import {
+  JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData,
+} from './video_util';
 
 const VideoCall = () => {
   const [pcPeers, setPcPeers] = useState({});
@@ -7,8 +9,8 @@ const VideoCall = () => {
   let localStream;
 
   useEffect(() => {
-    const remoteVideoContainer = document.getElementById('remote-video-container')
-    const localVideo = document.getElementById('local-video')
+    const remoteVideoContainer = document.getElementById('remote-video-container');
+    const localVideo = document.getElementById('local-video');
     navigator
       .mediaDevices
       .getUserMedia({ video: true })
@@ -16,23 +18,23 @@ const VideoCall = () => {
         localStream = stream;
         localVideo.srcObject = stream;
       })
-      .catch(error => { console.log(error)});
+      .catch((error) => { console.log(error); });
   });
 
   const join = (data) => {
-  }
+  };
 
   const joinCall = (e) => {
     App.cable.subscriptions.create(
-      { channel: "CallChannel" },
+      { channel: 'CallChannel' },
       {
         connected: () => {
-          broadcastData({ type: JOIN_CALL, from: this.userId});
+          broadcastData({ type: JOIN_CALL, from: this.userId });
         },
-        received: data => {
-          console.log("RECEIVED: ", data);
+        received: (data) => {
+          console.log('RECEIVED: ', data);
           if (data.from === this.userId) return;
-          switch(data.type){
+          switch (data.type) {
             case JOIN_CALL:
               return this.join(data);
             case EXCHANGE:
@@ -41,23 +43,23 @@ const VideoCall = () => {
             case LEAVE_CALL:
               return this.removeUser(data);
             default:
-              return;
           }
-        }
-      });
-  }
+        },
+      },
+    );
+  };
 
   const createPC = (userId, offerBool) => {
-  }
+  };
 
   const exchange = (data) => {
-  }
+  };
 
   const leaveCall = () => {
-  }
+  };
 
   const removeUser = (data) => {
-  }
+  };
 
   return (
     <div className="VideoCall">
@@ -66,7 +68,7 @@ const VideoCall = () => {
       <button onClick={joinCall}>Join Call</button>
       <button onClick={leaveCall}>Leave Call</button>
     </div>
-    );
-}
+  );
+};
 
 export default VideoCall;
