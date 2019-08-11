@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+/* global App */
+
+import React, { useEffect } from 'react';
 import {
   JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData, ice
 } from './video_util';
 
 const VideoCall = () => {
   let pcPeers = {};
-  const userId =  Math.floor(Math.random() * 10000);
+  const userId = Math.floor(Math.random() * 10000);
   let localStream;
   let remoteVideoContainer;
   let localVideo;
@@ -119,17 +121,18 @@ const VideoCall = () => {
         },
         received: (data) => {
           console.log('RECEIVED: ', data);
-          if (data.from === userId) return;
+          if (data.from === userId) return null;
           switch (data.type) {
             case JOIN_CALL:
               return join(data);
             case EXCHANGE:
-              if (data.to !== userId) return;
+              if (data.to !== userId) return null;
               return exchange(data);
             case LEAVE_CALL:
               return removeUser(data);
             default:
           }
+          return null;
         },
       },
     );
@@ -144,7 +147,7 @@ const VideoCall = () => {
     localVideo
       .srcObject
       .getTracks()
-      .forEach((track) => { track.stop(); })
+      .forEach((track) => { track.stop(); });
 
     localVideo.srcObject = null;
     App.cable.subscriptions.subscriptions = [];
@@ -159,7 +162,7 @@ const VideoCall = () => {
       <button onClick={joinCall}>Join Call</button>
       <button onClick={leaveCall}>Leave Call</button>
     </div>
-    );
+  );
 };
 
 export default VideoCall;
