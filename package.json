@@ -7,7 +7,8 @@
     "babel-plugin-transform-react-remove-prop-types": "^0.4.24",
     "prop-types": "^15.7.2",
     "react": "^16.9.0",
-    "react-dom": "^16.9.0"
+    "react-dom": "^16.9.0",
+    "webrtc-adapter": "^7.2.9"
   },
   "devDependencies": {
     "eslint": "^6.1.0",

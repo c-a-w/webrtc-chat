@@ -1,6 +1,7 @@
 /* global App */
 
 import React, { useEffect } from 'react';
+import adapter from 'webrtc-adapter';
 import {
   JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData, ice
 } from './video_util';
