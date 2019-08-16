@@ -18,7 +18,7 @@ const VideoCall = () => {
     localVideo = document.getElementById('local-video');
     navigator
       .mediaDevices
-      .getUserMedia({ video: true })
+      .getUserMedia({ audio: true, video: true })
       .then((stream) => {
         localStream = stream;
         localVideo.srcObject = stream;
