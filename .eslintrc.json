@@ -21,5 +21,12 @@
         "react"
     ],
     "rules": {
+      "comma-dangle": ["error", "never"],
+      "arrow-parens": [
+        "error", "as-needed", { "requireForBlockBody": false }
+      ],
+      "no-unused-expressions": [
+        "error", { "allowShortCircuit": true }
+      ]
     }
 }
