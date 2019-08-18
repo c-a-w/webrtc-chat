@@ -18,85 +18,85 @@ const VideoCall = () => {
     localVideo = document.getElementById('local-video');
     navigator
       .mediaDevices
-      .getUserMedia({ audio: true, video: true })
-      .then((stream) => {
+      .getUserMedia({ video: true })
+      .then(stream => {
         localStream = stream;
         localVideo.srcObject = stream;
       })
-      .catch((error) => { console.log(error); });
+      .catch(error => { console.log(error); });
   });
 
-  const createPC = (pcUserId, offerBool) => {
-    const pc = new RTCPeerConnection(ice);
-    pcPeers[pcUserId] = pc;
+  const createPeerConnection = (pcUserId, offerBool) => {
+    const peerConnection = new RTCPeerConnection(ice);
+    pcPeers[pcUserId] = peerConnection;
     localStream
       .getTracks()
-      .forEach((track) => pc.addTrack(track, localStream));
+      .forEach(track => peerConnection.addTrack(track, localStream));
     if (offerBool) {
-      pc.createOffer().then((offer) => {
-        pc.setLocalDescription(offer).then(() => {
+      peerConnection.createOffer().then(offer => {
+        peerConnection.setLocalDescription(offer).then(() => {
           setTimeout(() => {
             broadcastData({
               type: EXCHANGE,
               from: userId,
               to: pcUserId,
-              sdp: JSON.stringify(pc.localDescription),
+              sdp: JSON.stringify(peerConnection.localDescription)
             });
           }, 0);
         });
       });
     }
-    pc.onicecandidate = (e) => {
+    peerConnection.onicecandidate = e => {
       broadcastData({
         type: EXCHANGE,
         from: userId,
         to: pcUserId,
-        sdp: JSON.stringify(e.candidate),
+        sdp: JSON.stringify(e.candidate)
       });
     };
-    pc.ontrack = (e) => {
+    peerConnection.ontrack = e => {
       const remoteVid = document.createElement('video');
       remoteVid.id = `remoteVideoContainer+${userId}`;
       remoteVid.autoplay = 'autoplay';
       [remoteVid.srcObject] = e.streams;
       remoteVideoContainer.appendChild(remoteVid);
     };
-    pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === 'disconnected') {
+    peerConnection.oniceconnectionstatechange = () => {
+      if (peerConnection.iceConnectionState === 'disconnected') {
         broadcastData({ type: LEAVE_CALL, from: userId });
       }
     };
-    return pc;
+    return peerConnection;
   };
 
-  const join = (data) => {
-    createPC(data.from, true);
+  const join = data => {
+    createPeerConnection(data.from, true);
   };
 
-  const exchange = (data) => {
-    let pc;
+  const exchange = data => {
+    let peerConnection;
     if (pcPeers[data.from]) {
-      pc = pcPeers[data.from];
+      peerConnection = pcPeers[data.from];
     } else {
-      pc = createPC(data.from, false);
+      peerConnection = createPeerConnection(data.from, false);
     }
     if (data.candidate) {
       const candidate = JSON.parse(data.candidate);
-      pc.addIceCandidate(new RTCIceCandidate(candidate));
+      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     }
     if (data.sdp) {
       const sdp = JSON.parse(data.sdp);
       if (sdp && !sdp.candidate) {
-        pc.setRemoteDescription(sdp).then(() => {
+        peerConnection.setRemoteDescription(sdp).then(() => {
           if (sdp.type === 'offer') {
-            pc.createAnswer().then((answer) => {
-              pc.setLocalDescription(answer)
+            peerConnection.createAnswer().then(answer => {
+              peerConnection.setLocalDescription(answer)
                 .then(() => {
                   broadcastData({
                     type: EXCHANGE,
                     from: userId,
                     to: data.from,
-                    sdp: JSON.stringify(pc.localDescription),
+                    sdp: JSON.stringify(peerConnection.localDescription)
                   });
                 });
             });
@@ -106,7 +106,7 @@ const VideoCall = () => {
     }
   };
 
-  const removeUser = (data) => {
+  const removeUser = data => {
     const video = document.getElementById(`remoteVideoContainer+${data.from}`);
     video && video.remove();
     const peers = pcPeers;
@@ -120,7 +120,7 @@ const VideoCall = () => {
         connected: () => {
           broadcastData({ type: JOIN_CALL, from: userId });
         },
-        received: (data) => {
+        received: data => {
           console.log('RECEIVED: ', data);
           if (data.from === userId) return null;
           switch (data.type) {
@@ -134,21 +134,18 @@ const VideoCall = () => {
             default:
           }
           return null;
-        },
+        }
       },
     );
   };
 
   const leaveCall = () => {
-    const pcKeys = Object.keys(pcPeers);
-    for (let i = 0; i < pcKeys.length; i += 1) {
-      pcPeers[pcKeys[i]].close();
-    }
+    Object.keys(pcPeers).forEach(peerConnection => pcPeers[peerConnection].close());
     pcPeers = {};
     localVideo
       .srcObject
       .getTracks()
-      .forEach((track) => { track.stop(); });
+      .forEach(track => { track.stop(); });
 
     localVideo.srcObject = null;
     App.cable.subscriptions.subscriptions = [];
