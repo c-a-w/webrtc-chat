@@ -8,7 +8,7 @@ export const ice = {
     }
   ]
 };
-export const broadcastData = (data) => {
+export const broadcastData = data => {
   fetch('calls', {
     method: 'POST',
     body: JSON.stringify(data),

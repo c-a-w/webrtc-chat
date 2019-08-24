@@ -1,7 +1,15 @@
 /* global App */
+/* eslint-disable jsx-a11y/media-has-caption */
+
+// createPeerConnection
+// join
+// exchange
+// removeUser
+// joinCall
+// leaveCall
 
 import React, { useEffect } from 'react';
-import adapter from 'webrtc-adapter';
+import adapter from 'webrtc-adapter'; // eslint-disable-line no-unused-vars
 import {
   JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData, ice
 } from './video_util';
@@ -12,9 +20,11 @@ const VideoCall = () => {
   let localStream;
   let remoteVideoContainer;
   let localVideo;
+  let remoteVideo;
+
 
   useEffect(() => {
-    remoteVideoContainer = document.getElementById('remote-video-container');
+    remoteVideo = document.getElementById('remote-video');
     localVideo = document.getElementById('local-video');
     navigator
       .mediaDevices
@@ -24,7 +34,7 @@ const VideoCall = () => {
         localVideo.srcObject = stream;
       })
       .catch(error => { console.log(error); });
-  });
+  }, []);
 
   const createPeerConnection = (pcUserId, offerBool) => {
     const peerConnection = new RTCPeerConnection(ice);
@@ -33,18 +43,22 @@ const VideoCall = () => {
       .getTracks()
       .forEach(track => peerConnection.addTrack(track, localStream));
     if (offerBool) {
-      peerConnection.createOffer().then(offer => {
-        peerConnection.setLocalDescription(offer).then(() => {
-          setTimeout(() => {
-            broadcastData({
-              type: EXCHANGE,
-              from: userId,
-              to: pcUserId,
-              sdp: JSON.stringify(peerConnection.localDescription)
+      peerConnection
+        .createOffer()
+        .then(offer => {
+          peerConnection
+            .setLocalDescription(offer)
+            .then(() => {
+              setTimeout(() => {
+                broadcastData({
+                  type: EXCHANGE,
+                  from: userId,
+                  to: pcUserId,
+                  sdp: JSON.stringify(peerConnection.localDescription)
+                });
+              }, 0);
             });
-          }, 0);
         });
-      });
     }
     peerConnection.onicecandidate = e => {
       broadcastData({
@@ -55,11 +69,7 @@ const VideoCall = () => {
       });
     };
     peerConnection.ontrack = e => {
-      const remoteVid = document.createElement('video');
-      remoteVid.id = `remoteVideoContainer+${userId}`;
-      remoteVid.autoplay = 'autoplay';
-      [remoteVid.srcObject] = e.streams;
-      remoteVideoContainer.appendChild(remoteVid);
+      [remoteVideo.srcObject] = e.streams;
     };
     peerConnection.oniceconnectionstatechange = () => {
       if (peerConnection.iceConnectionState === 'disconnected') {
@@ -107,7 +117,7 @@ const VideoCall = () => {
   };
 
   const removeUser = data => {
-    const video = document.getElementById(`remoteVideoContainer+${data.from}`);
+    const video = document.getElementById('remoteVideoContainer');
     video && video.remove();
     const peers = pcPeers;
     delete peers[data.from];
@@ -149,16 +159,15 @@ const VideoCall = () => {
 
     localVideo.srcObject = null;
     App.cable.subscriptions.subscriptions = [];
-    remoteVideoContainer.innerHTML = '';
     broadcastData({ type: LEAVE_CALL, from: userId });
   };
 
   return (
     <div className="VideoCall">
-      <div id="remote-video-container" />
-      <video id="local-video" autoPlay />
-      <button onClick={joinCall}>Join Call</button>
-      <button onClick={leaveCall}>Leave Call</button>
+      <video id="local-video" autoPlay playsInline />
+      <video id="remote-video" autoPlay playsInline />
+      <button type="button" onClick={joinCall}>Join Call</button>
+      <button type="button" onClick={leaveCall}>Leave Call</button>
     </div>
   );
 };
