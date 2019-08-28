@@ -8,7 +8,7 @@
 // joinCall
 // leaveCall
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import adapter from 'webrtc-adapter'; // eslint-disable-line no-unused-vars
 import {
   JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData, ice
@@ -18,12 +18,11 @@ const VideoCall = () => {
   let pcPeers = {};
   const userId = Math.floor(Math.random() * 10000);
   let localStream;
-  let remoteVideoContainer;
   let localVideo;
   let remoteVideo;
 
 
-  useEffect(() => {
+  React.useEffect(() => {
     remoteVideo = document.getElementById('remote-video');
     localVideo = document.getElementById('local-video');
     navigator
