@@ -12,8 +12,7 @@ module Api
         headers = { "Authorization" => auth, "Content-Type" => nil }
 
         res = Faraday.put(url, {}, headers)
-        
-        puts res.body
+
         render json: res.body, status: 200
       end
     end

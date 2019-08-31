@@ -37,6 +37,7 @@ const VideoCall = () => {
 
   const createPeerConnection = (pcUserId, offerBool) => {
     const peerConnection = new RTCPeerConnection(ice);
+    console.log(peerConnection);
     pcPeers[pcUserId] = peerConnection;
     localStream
       .getTracks()
@@ -134,6 +135,7 @@ const VideoCall = () => {
           if (data.from === userId) return null;
           switch (data.type) {
             case JOIN_CALL:
+              console.log('joining');
               return join(data);
             case EXCHANGE:
               if (data.to !== userId) return null;
