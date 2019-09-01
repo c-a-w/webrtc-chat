@@ -1,5 +1,5 @@
 /* global App */
-/* eslint-disable jsx-a11y/media-has-caption */
+/* eslint-disable jsx-a11y/media-has-caption, no-console */
 
 // createPeerConnection
 // join
@@ -14,8 +14,8 @@ import {
   JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData, ice
 } from './video_util';
 
-const VideoCall = () => {
-  let pcPeers = {};
+function VideoCall() {
+  let peers = {};
   const userId = Math.floor(Math.random() * 10000);
   let localStream;
   let localVideo;
@@ -25,6 +25,8 @@ const VideoCall = () => {
   React.useEffect(() => {
     remoteVideo = document.getElementById('remote-video');
     localVideo = document.getElementById('local-video');
+
+    // set local video stream
     navigator
       .mediaDevices
       .getUserMedia({ video: true })
@@ -35,32 +37,75 @@ const VideoCall = () => {
       .catch(error => { console.log(error); });
   }, []);
 
-  const createPeerConnection = (pcUserId, offerBool) => {
+  function join(data) {
+    createPeerConnection(data.from, true);
+  }
+
+  function removeUser(data) {
+    const video = document.getElementById('remoteVideoContainer');
+    video && video.remove();
+    delete peers[data.from];
+  }
+
+  function joinCall() {
+    App.cable.subscriptions.create(
+      { channel: 'CallChannel' },
+      {
+        connected() {
+          console.log(`CONNECTED: ${userId}`);
+          broadcastData({ type: JOIN_CALL, from: userId });
+        },
+        received(data) {
+          console.log('RECEIVED: ', data);
+
+          // from self, so do nothing
+          if (data.from === userId) {
+            console.log('data.from === userId; will not exchange, createPC or leave call');
+            return;
+          }
+
+          if (data.type === JOIN_CALL) {
+            console.log('creating PC with offer');
+            createPeerConnection(data.from, true);
+          }
+
+          if (data.type === EXCHANGE) {
+            if (data.to !== userId) {
+              console.log('data.to !== userId, will not start exchange');
+              return;
+            }
+            console.log('starting exchange');
+            exchange(data);
+          }
+
+          if (data.type === LEAVE_CALL) {
+            console.log('leaving call');
+            removeUser(data);
+          }
+        }
+      }
+    );
+  }
+
+  function createPeerConnection(pcUserId, offerBool) {
     const peerConnection = new RTCPeerConnection(ice);
-    console.log(peerConnection);
-    pcPeers[pcUserId] = peerConnection;
-    localStream
-      .getTracks()
-      .forEach(track => peerConnection.addTrack(track, localStream));
+    peers[pcUserId] = peerConnection;
+    localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
     if (offerBool) {
-      peerConnection
-        .createOffer()
-        .then(offer => {
-          peerConnection
-            .setLocalDescription(offer)
-            .then(() => {
-              setTimeout(() => {
-                broadcastData({
-                  type: EXCHANGE,
-                  from: userId,
-                  to: pcUserId,
-                  sdp: JSON.stringify(peerConnection.localDescription)
-                });
-              }, 0);
-            });
+      peerConnection.createOffer().then(offer => {
+        peerConnection.setLocalDescription(offer).then(() => {
+          broadcastData({
+            type: EXCHANGE,
+            from: userId,
+            to: pcUserId,
+            sdp: JSON.stringify(peerConnection.localDescription)
+          });
         });
+      });
     }
     peerConnection.onicecandidate = e => {
+      console.log('on ice candidate');
+      console.log(e);
       broadcastData({
         type: EXCHANGE,
         from: userId,
@@ -77,91 +122,53 @@ const VideoCall = () => {
       }
     };
     return peerConnection;
-  };
+  }
 
-  const join = data => {
-    createPeerConnection(data.from, true);
-  };
-
-  const exchange = data => {
+  function exchange(data) {
     let peerConnection;
-    if (pcPeers[data.from]) {
-      peerConnection = pcPeers[data.from];
+
+    if (peers[data.from]) {
+      // peer connection already exists, so use that one
+      peerConnection = peers[data.from];
     } else {
       peerConnection = createPeerConnection(data.from, false);
     }
+
     if (data.candidate) {
       const candidate = JSON.parse(data.candidate);
       peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
     }
+
     if (data.sdp) {
       const sdp = JSON.parse(data.sdp);
       if (sdp && !sdp.candidate) {
         peerConnection.setRemoteDescription(sdp).then(() => {
-          if (sdp.type === 'offer') {
-            peerConnection.createAnswer().then(answer => {
-              peerConnection.setLocalDescription(answer)
-                .then(() => {
-                  broadcastData({
-                    type: EXCHANGE,
-                    from: userId,
-                    to: data.from,
-                    sdp: JSON.stringify(peerConnection.localDescription)
-                  });
-                });
+          if (sdp.type !== 'offer') { return; }
+
+          peerConnection.createAnswer().then(answer => {
+            peerConnection.setLocalDescription(answer).then(() => {
+              broadcastData({
+                type: EXCHANGE,
+                from: userId,
+                to: data.from,
+                sdp: JSON.stringify(peerConnection.localDescription)
+              });
             });
-          }
+          });
         });
       }
     }
-  };
+  }
 
-  const removeUser = data => {
-    const video = document.getElementById('remoteVideoContainer');
-    video && video.remove();
-    const peers = pcPeers;
-    delete peers[data.from];
-  };
-
-  const joinCall = () => {
-    App.cable.subscriptions.create(
-      { channel: 'CallChannel' },
-      {
-        connected: () => {
-          broadcastData({ type: JOIN_CALL, from: userId });
-        },
-        received: data => {
-          console.log('RECEIVED: ', data);
-          if (data.from === userId) return null;
-          switch (data.type) {
-            case JOIN_CALL:
-              console.log('joining');
-              return join(data);
-            case EXCHANGE:
-              if (data.to !== userId) return null;
-              return exchange(data);
-            case LEAVE_CALL:
-              return removeUser(data);
-            default:
-          }
-          return null;
-        }
-      },
-    );
-  };
-
-  const leaveCall = () => {
-    Object.keys(pcPeers).forEach(peerConnection => pcPeers[peerConnection].close());
-    pcPeers = {};
-    localVideo
-      .srcObject
-      .getTracks()
-      .forEach(track => { track.stop(); });
+  function leaveCall() {
+    Object.keys(peers).forEach(peerConnection => peers[peerConnection].close());
+    peers = {};
+    localVideo.srcObject.getTracks().forEach(track => track.stop());
 
     localVideo.srcObject = null;
     App.cable.subscriptions.subscriptions = [];
     broadcastData({ type: LEAVE_CALL, from: userId });
-  };
+  }
 
   return (
     <div className="VideoCall">
@@ -171,6 +178,6 @@ const VideoCall = () => {
       <button type="button" onClick={leaveCall}>Leave Call</button>
     </div>
   );
-};
+}
 
 export default VideoCall;
