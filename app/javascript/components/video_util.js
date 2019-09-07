@@ -28,6 +28,6 @@ function getServers() {
 }
 
 // export const ice = getServers();
-export const broadcastData = data => {
-  Axios.post('calls', data);
-};
+// export const broadcastData = data => {
+//   Axios.post('calls', data);
+// };
