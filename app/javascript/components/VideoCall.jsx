@@ -141,7 +141,9 @@ function VideoCall() {
     const parsedSDP = JSON.parse(data.sdp);
 
     if (parsedSDP.candidate) {
-      peerConnection.addIceCandidate(new RTCIceCandidate(parsedSDP));
+      peerConnection
+        .addIceCandidate(new RTCIceCandidate(parsedSDP))
+        .catch(e => console.log(`could not add candidate: ${e}`));
     }
 
     if (parsedSDP && !parsedSDP.candidate) {
