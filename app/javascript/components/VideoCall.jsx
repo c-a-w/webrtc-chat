@@ -127,6 +127,8 @@ function VideoCall() {
   function exchange(data) {
     let peerConnection;
 
+    console.log('data:');
+    console.log(data);
     if (peers[data.from]) {
       // peer connection already exists, so use that one
       peerConnection = peers[data.from];
@@ -134,29 +136,29 @@ function VideoCall() {
       peerConnection = createPeerConnection(data.from, false);
     }
 
-    if (data.candidate) {
-      const candidate = JSON.parse(data.candidate);
-      peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    if (!data.sdp || data.sdp === 'null') { return; }
+
+    const parsedSDP = JSON.parse(data.sdp);
+
+    if (parsedSDP.candidate) {
+      peerConnection.addIceCandidate(new RTCIceCandidate(parsedSDP));
     }
 
-    if (data.sdp) {
-      const sdp = JSON.parse(data.sdp);
-      if (sdp && !sdp.candidate) {
-        peerConnection.setRemoteDescription(sdp).then(() => {
-          if (sdp.type !== 'offer') { return; }
+    if (parsedSDP && !parsedSDP.candidate) {
+      peerConnection.setRemoteDescription(parsedSDP).then(() => {
+        if (parsedSDP.type !== 'offer') { return; }
 
-          peerConnection.createAnswer().then(answer => {
-            peerConnection.setLocalDescription(answer).then(() => {
-              broadcastData({
-                type: EXCHANGE,
-                from: userId,
-                to: data.from,
-                sdp: JSON.stringify(peerConnection.localDescription)
-              });
+        peerConnection.createAnswer().then(answer => {
+          peerConnection.setLocalDescription(answer).then(() => {
+            broadcastData({
+              type: EXCHANGE,
+              from: userId,
+              to: data.from,
+              sdp: JSON.stringify(peerConnection.localDescription)
             });
           });
         });
-      }
+      });
     }
   }
 
@@ -177,7 +179,7 @@ function VideoCall() {
       <button type="button" onClick={joinCall}>Join Call</button>
       <button type="button" onClick={leaveCall}>Leave Call</button>
     </div>
-  );
+    );
 }
 
 export default VideoCall;
