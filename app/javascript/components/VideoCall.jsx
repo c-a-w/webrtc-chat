@@ -52,34 +52,34 @@ function VideoCall() {
       { channel: 'CallChannel' },
       {
         connected() {
-          console.log(`CONNECTED: ${userId}`);
+          // console.log(`CONNECTED: ${userId}`);
           broadcastData({ type: JOIN_CALL, from: userId });
         },
         received(data) {
-          console.log('RECEIVED: ', data);
+          // console.log('RECEIVED: ', data);
 
           // from self, so do nothing
           if (data.from === userId) {
-            console.log('data.from === userId; will not exchange, createPC or leave call');
+            // console.log('data.from === userId; will not exchange, createPC or leave call');
             return;
           }
 
           if (data.type === JOIN_CALL) {
-            console.log('creating PC with offer');
+            // console.log('creating PC with offer');
             createPeerConnection(data.from, true);
           }
 
           if (data.type === EXCHANGE) {
             if (data.to !== userId) {
-              console.log('data.to !== userId, will not start exchange');
+              // console.log('data.to !== userId, will not start exchange');
               return;
             }
-            console.log('starting exchange');
+            // console.log('starting exchange');
             exchange(data);
           }
 
           if (data.type === LEAVE_CALL) {
-            console.log('leaving call');
+            // console.log('leaving call');
             removeUser(data);
           }
         }
@@ -92,7 +92,9 @@ function VideoCall() {
     peers[pcUserId] = peerConnection;
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
     if (offerBool) {
+      console.log(`${userId} creating offer`);
       peerConnection.createOffer().then(offer => {
+      console.log(`${userId} setting local description`);
         peerConnection.setLocalDescription(offer).then(() => {
           broadcastData({
             type: EXCHANGE,
@@ -105,7 +107,6 @@ function VideoCall() {
     }
     peerConnection.onicecandidate = e => {
       console.log('on ice candidate');
-      console.log(e);
       broadcastData({
         type: EXCHANGE,
         from: userId,
@@ -141,15 +142,18 @@ function VideoCall() {
     const parsedSDP = JSON.parse(data.sdp);
 
     if (parsedSDP.candidate) {
+      console.log(`${userId} adding ice candidate: ${parsedSDP.candidate}`);
       peerConnection
         .addIceCandidate(new RTCIceCandidate(parsedSDP))
         .catch(e => console.log(e));
     }
 
     if (parsedSDP && !parsedSDP.candidate) {
+      console.log(`${userId} setting remote description`);
       peerConnection.setRemoteDescription(parsedSDP).then(() => {
         if (parsedSDP.type !== 'offer') { return; }
 
+        console.log(`${userId} creating answer`);
         peerConnection.createAnswer().then(answer => {
           peerConnection.setLocalDescription(answer).then(() => {
             broadcastData({
