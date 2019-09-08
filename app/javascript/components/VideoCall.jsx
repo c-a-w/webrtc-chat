@@ -78,6 +78,7 @@ function VideoCall() {
 
   function createPeerConnection(pcUserId, shouldCreateOffer) {
     const peerConnection = new RTCPeerConnection(ice);
+    console.log(peerConnection);
     peers[pcUserId] = peerConnection;
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 

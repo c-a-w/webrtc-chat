@@ -14,7 +14,13 @@ function getServers() {
     });
 }
 
-export const ice = getServers();
+// export const ice = getServers();
+export const ice = { iceServers: [
+  {
+    urls: 'stun:stun2.l.google.com:19302'
+  }
+]};
+
 export const broadcastData = data => {
   Axios.post('calls', data);
 };
