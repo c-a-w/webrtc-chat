@@ -1,18 +1,35 @@
 /* global App */
 /* eslint-disable jsx-a11y/media-has-caption, no-console */
 
+import Axios from 'axios';
 import React from 'react';
 import adapter from 'webrtc-adapter'; // eslint-disable-line no-unused-vars
 import {
-  JOIN_CALL, EXCHANGE, LEAVE_CALL, broadcastData, ice
+  JOIN_CALL,
+  EXCHANGE,
+  LEAVE_CALL,
+  broadcastData,
+  ice
 } from './video_util';
 
-function VideoCall() {
+const VideoCall = () => {
   let peers = {};
   const userId = Math.floor(Math.random() * 10000);
   let localStream;
   let localVideo;
   let remoteVideo;
+  let iceServers;
+
+  const getServers = () => {
+    Axios.get('api/v1/servers')
+      .then(response => {
+        if (response.s !== 'error') {
+          console.log(response.data.v);
+          iceServers = response.data.v;
+        }
+      })
+      .catch(err => console.log(err));
+  };
 
 
   React.useEffect(() => {
@@ -20,6 +37,7 @@ function VideoCall() {
     localVideo = document.getElementById('local-video');
 
     // set local video stream
+    getServers();
     navigator
       .mediaDevices
       .getUserMedia({ video: true })
@@ -30,54 +48,14 @@ function VideoCall() {
       .catch(error => { console.log(error); });
   }, []);
 
-  function removeUser(data) {
+  const removeUser = data => {
     const video = document.getElementById('remoteVideoContainer');
     video && video.remove();
     delete peers[data.from];
-  }
+  };
 
-  function joinCall() {
-    App.cable.subscriptions.create(
-      { channel: 'CallChannel' },
-      {
-        connected() {
-          // console.log(`CONNECTED: ${userId}`);
-          broadcastData({ type: JOIN_CALL, from: userId });
-        },
-        received(data) {
-          // console.log('RECEIVED: ', data);
-
-          // from self, so do nothing
-          if (data.from === userId) {
-            // console.log('data.from === userId; will not exchange, createPC or leave call');
-            return;
-          }
-
-          if (data.type === JOIN_CALL) {
-            // console.log('creating PC with offer');
-            createPeerConnection(data.from, true);
-          }
-
-          if (data.type === EXCHANGE) {
-            if (data.to !== userId) {
-              // console.log('data.to !== userId, will not start exchange');
-              return;
-            }
-            // console.log('starting exchange');
-            exchange(data);
-          }
-
-          if (data.type === LEAVE_CALL) {
-            // console.log('leaving call');
-            removeUser(data);
-          }
-        }
-      }
-    );
-  }
-
-  function createPeerConnection(pcUserId, shouldCreateOffer) {
-    const peerConnection = new RTCPeerConnection(ice);
+  const createPeerConnection = (pcUserId, shouldCreateOffer) => {
+    const peerConnection = new RTCPeerConnection(iceServers);
     console.log(peerConnection);
     peers[pcUserId] = peerConnection;
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -122,9 +100,9 @@ function VideoCall() {
     };
 
     return peerConnection;
-  }
+  };
 
-  function exchange(data) {
+  const exchange = data => {
     let peerConnection;
 
     if (peers[data.from]) {
@@ -165,9 +143,49 @@ function VideoCall() {
         });
       });
     }
-  }
+  };
 
-  function leaveCall() {
+  const joinCall = () => {
+    App.cable.subscriptions.create(
+      { channel: 'CallChannel' },
+      {
+        connected() {
+          // console.log(`CONNECTED: ${userId}`);
+          broadcastData({ type: JOIN_CALL, from: userId });
+        },
+        received(data) {
+          // console.log('RECEIVED: ', data);
+
+          // from self, so do nothing
+          if (data.from === userId) {
+            // console.log('data.from === userId; will not exchange, createPC or leave call');
+            return;
+          }
+
+          if (data.type === JOIN_CALL) {
+            // console.log('creating PC with offer');
+            createPeerConnection(data.from, true);
+          }
+
+          if (data.type === EXCHANGE) {
+            if (data.to !== userId) {
+              // console.log('data.to !== userId, will not start exchange');
+              return;
+            }
+            // console.log('starting exchange');
+            exchange(data);
+          }
+
+          if (data.type === LEAVE_CALL) {
+            // console.log('leaving call');
+            removeUser(data);
+          }
+        }
+      }
+    );
+  };
+
+  const leaveCall = () => {
     Object.keys(peers).forEach(peerConnection => peers[peerConnection].close());
     peers = {};
     localVideo.srcObject.getTracks().forEach(track => track.stop());
@@ -175,7 +193,7 @@ function VideoCall() {
     localVideo.srcObject = null;
     App.cable.subscriptions.subscriptions = [];
     broadcastData({ type: LEAVE_CALL, from: userId });
-  }
+  };
 
   return (
     <div className="VideoCall">
@@ -185,6 +203,6 @@ function VideoCall() {
       <button type="button" onClick={leaveCall}>Leave Call</button>
     </div>
     );
-}
+};
 
 export default VideoCall;

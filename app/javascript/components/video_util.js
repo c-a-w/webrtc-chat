@@ -6,12 +6,12 @@ export const LEAVE_CALL = 'LEAVE_CALL';
 function getServers() {
   Axios.get('api/v1/servers')
     .then(response => {
-      console.log('got ice servers');
       if (response.s === 'error') {
         return null;
       }
-      return response.v;
-    });
+      return response.data.v;
+    })
+    .catch(err => console.log(err));
 }
 
 export const ice = getServers();
