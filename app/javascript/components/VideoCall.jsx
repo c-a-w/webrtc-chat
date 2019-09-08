@@ -1,13 +1,6 @@
 /* global App */
 /* eslint-disable jsx-a11y/media-has-caption, no-console */
 
-// createPeerConnection
-// join
-// exchange
-// removeUser
-// joinCall
-// leaveCall
-
 import React from 'react';
 import adapter from 'webrtc-adapter'; // eslint-disable-line no-unused-vars
 import {
@@ -36,10 +29,6 @@ function VideoCall() {
       })
       .catch(error => { console.log(error); });
   }, []);
-
-  function join(data) {
-    createPeerConnection(data.from, true);
-  }
 
   function removeUser(data) {
     const video = document.getElementById('remoteVideoContainer');
@@ -87,26 +76,31 @@ function VideoCall() {
     );
   }
 
-  function createPeerConnection(pcUserId, offerBool) {
+  function createPeerConnection(pcUserId, shouldCreateOffer) {
     const peerConnection = new RTCPeerConnection(ice);
     peers[pcUserId] = peerConnection;
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
-    if (offerBool) {
+
+    if (shouldCreateOffer) {
       console.log(`${userId} creating offer`);
       peerConnection.createOffer().then(offer => {
-      console.log(`${userId} setting local description`);
+        console.log(`${userId} setting local description`);
         peerConnection.setLocalDescription(offer).then(() => {
-          broadcastData({
-            type: EXCHANGE,
-            from: userId,
-            to: pcUserId,
-            sdp: JSON.stringify(peerConnection.localDescription)
-          });
+          console.log(`${userId} broadcasting local description`);
+          setTimeout(() => {
+            broadcastData({
+              type: EXCHANGE,
+              from: userId,
+              to: pcUserId,
+              sdp: JSON.stringify(peerConnection.localDescription)
+            });
+          }, 0);
         });
       });
     }
+
     peerConnection.onicecandidate = e => {
-      console.log('on ice candidate');
+      console.log(`${userId} broadcasting candidate to ${pcUserId}`);
       broadcastData({
         type: EXCHANGE,
         from: userId,
@@ -114,22 +108,24 @@ function VideoCall() {
         sdp: JSON.stringify(e.candidate)
       });
     };
+
     peerConnection.ontrack = e => {
+      console.log(`${userId} setting remote video stream`);
       [remoteVideo.srcObject] = e.streams;
     };
+
     peerConnection.oniceconnectionstatechange = () => {
       if (peerConnection.iceConnectionState === 'disconnected') {
         broadcastData({ type: LEAVE_CALL, from: userId });
       }
     };
+
     return peerConnection;
   }
 
   function exchange(data) {
     let peerConnection;
 
-    console.log('data:');
-    console.log(data);
     if (peers[data.from]) {
       // peer connection already exists, so use that one
       peerConnection = peers[data.from];
@@ -142,20 +138,20 @@ function VideoCall() {
     const parsedSDP = JSON.parse(data.sdp);
 
     if (parsedSDP.candidate) {
-      console.log(`${userId} adding ice candidate: ${parsedSDP.candidate}`);
+      console.log(`${userId} adding ice candidate`);
       peerConnection
         .addIceCandidate(new RTCIceCandidate(parsedSDP))
         .catch(e => console.log(e));
-    }
-
-    if (parsedSDP && !parsedSDP.candidate) {
+    } else {
       console.log(`${userId} setting remote description`);
       peerConnection.setRemoteDescription(parsedSDP).then(() => {
         if (parsedSDP.type !== 'offer') { return; }
 
         console.log(`${userId} creating answer`);
         peerConnection.createAnswer().then(answer => {
+          console.log(`${userId} setting answer as local description`);
           peerConnection.setLocalDescription(answer).then(() => {
+            console.log(`${userId} broadcasting local description to ${data.from}`);
             broadcastData({
               type: EXCHANGE,
               from: userId,
