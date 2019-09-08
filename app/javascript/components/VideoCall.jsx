@@ -87,26 +87,26 @@ function VideoCall() {
         console.log(`${userId} setting local description`);
         peerConnection.setLocalDescription(offer).then(() => {
           console.log(`${userId} broadcasting local description`);
-          setTimeout(() => {
-            broadcastData({
-              type: EXCHANGE,
-              from: userId,
-              to: pcUserId,
-              sdp: JSON.stringify(peerConnection.localDescription)
-            });
-          }, 0);
+          broadcastData({
+            type: EXCHANGE,
+            from: userId,
+            to: pcUserId,
+            sdp: JSON.stringify(peerConnection.localDescription)
+          });
         });
       });
     }
 
     peerConnection.onicecandidate = e => {
       console.log(`${userId} broadcasting candidate to ${pcUserId}`);
-      broadcastData({
-        type: EXCHANGE,
-        from: userId,
-        to: pcUserId,
-        sdp: JSON.stringify(e.candidate)
-      });
+      setTimeout(() => {
+        broadcastData({
+          type: EXCHANGE,
+          from: userId,
+          to: pcUserId,
+          sdp: JSON.stringify(e.candidate)
+        });
+      }, 1000);
     };
 
     peerConnection.ontrack = e => {
@@ -144,6 +144,8 @@ function VideoCall() {
         .catch(e => console.log(e));
     } else {
       console.log(`${userId} setting remote description`);
+      console.log(peerConnection);
+      console.log(parsedSDP);
       peerConnection.setRemoteDescription(parsedSDP).then(() => {
         if (parsedSDP.type !== 'offer') { return; }
 
