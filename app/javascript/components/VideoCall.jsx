@@ -85,7 +85,7 @@ const VideoCall = () => {
           to: pcUserId,
           sdp: JSON.stringify(e.candidate)
         });
-      }, 1000);
+      }, 0);
     };
 
     peerConnection.ontrack = e => {
