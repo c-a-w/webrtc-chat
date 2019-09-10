@@ -8,8 +8,7 @@ import {
   JOIN_CALL,
   EXCHANGE,
   LEAVE_CALL,
-  broadcastData,
-  ice
+  broadcastData
 } from './video_util';
 
 const VideoCall = () => {
@@ -197,12 +196,16 @@ const VideoCall = () => {
 
   return (
     <div className="VideoCall">
-      <video id="local-video" autoPlay playsInline />
-      <video id="remote-video" autoPlay playsInline />
-      <button type="button" onClick={joinCall}>Join Call</button>
-      <button type="button" onClick={leaveCall}>Leave Call</button>
+      <div className="buttons">
+        <button type="button" onClick={joinCall}>Join Call</button>
+        <button type="button" onClick={leaveCall}>Leave Call</button>
+      </div>
+      <div className="streams">
+        <video id="local-video" autoPlay playsInline />
+        <video id="remote-video" autoPlay playsInline />
+      </div>
     </div>
-    );
+  );
 };
 
 export default VideoCall;
