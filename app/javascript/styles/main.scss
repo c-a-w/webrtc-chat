@@ -1,0 +1,15 @@
+button {
+  font-size: 2em;
+  padding: 3% 4%;
+  margin: 3%;
+  background-color: #4287f5;
+  color: white;
+
+  &:hover {
+    background-color: #5496ff;
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
