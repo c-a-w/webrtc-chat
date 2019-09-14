@@ -17,29 +17,39 @@ const VideoCall = () => {
   let localStream;
   let localVideo;
   let remoteVideo;
-  let iceServers;
+  let iceServersTwilio;
+  let iceServersXirsys;
 
-  const getServers = () => {
-    Axios.get('api/v1/servers')
+  const [selectedServer, setSelectedServer] = React.useState('xirsys');
+
+  const getTwilioServers = () => {
+    Axios.get('api/v1/servers/twilio')
       .then(response => {
-        if (response.s !== 'error') {
-          console.log(response.data.v);
-          iceServers = response.data.v;
-        }
+        iceServersTwilio = { iceServers: response.data };
       })
       .catch(err => console.log(err));
   };
 
+  const getXirsysServers = () => {
+    Axios.get('api/v1/servers/xirsys')
+      .then(response => {
+        if (response.s !== 'error') {
+          iceServersXirsys = response.data.v;
+        }
+      })
+      .catch(err => console.log(err));
+  };
 
   React.useEffect(() => {
     remoteVideo = document.getElementById('remote-video');
     localVideo = document.getElementById('local-video');
 
     // set local video stream
-    getServers();
+    getTwilioServers();
+    getXirsysServers();
     navigator
       .mediaDevices
-      .getUserMedia({ audio: true, video: true })
+      .getUserMedia({ audio: false, video: true })
       .then(stream => {
         localStream = stream;
         localVideo.srcObject = stream;
@@ -54,7 +64,8 @@ const VideoCall = () => {
   };
 
   const createPeerConnection = (pcUserId, shouldCreateOffer) => {
-    const peerConnection = new RTCPeerConnection(iceServers);
+    const servers = selectedServer === 'xirsys' ? iceServersXirsys : iceServersTwilio;
+    const peerConnection = new RTCPeerConnection(servers);
     console.log(peerConnection);
     peers[pcUserId] = peerConnection;
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
@@ -194,18 +205,44 @@ const VideoCall = () => {
     broadcastData({ type: LEAVE_CALL, from: userId });
   };
 
+  const handleRadioSelect = e => setSelectedServer(e.target.value);
+
   return (
     <div className="VideoCall">
       <div className="buttons">
         <button type="button" onClick={joinCall}>Join Call</button>
         <button type="button" onClick={leaveCall}>Leave Call</button>
       </div>
+      <div className="radio">
+        <label htmlFor="xirsys">
+          <input
+            type="radio"
+            id="xirsys"
+            name="selectedServer"
+            value="xirsys"
+            onChange={handleRadioSelect}
+            checked={selectedServer === 'xirsys'}
+          />
+          Xirsys
+        </label>
+        <label htmlFor="twilio">
+          <input
+            type="radio"
+            id="twilio"
+            name="selectedServer"
+            value="twilio"
+            checked={selectedServer === 'twilio'}
+            onChange={handleRadioSelect}
+          />
+          Twilio
+        </label>
+      </div>
       <div className="streams">
         <video id="local-video" autoPlay playsInline />
         <video id="remote-video" autoPlay playsInline />
       </div>
     </div>
-  );
+    );
 };
 
 export default VideoCall;
