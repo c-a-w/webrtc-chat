@@ -22,25 +22,25 @@ const VideoCall = () => {
 
   const [selectedServer, setSelectedServer] = React.useState('xirsys');
 
-  const getTwilioServers = () => {
-    return Axios.get('api/v1/servers/twilio')
+  const getTwilioServers = () => (
+    Axios.get('api/v1/servers/twilio')
       .then(response => {
         iceServersTwilio = { iceServers: response.data };
         console.log('got twilio');
       })
-      .catch(err => console.log(err));
-  };
+      .catch(err => console.log(err))
+  );
 
-  const getXirsysServers = () => {
-    return Axios.get('api/v1/servers/xirsys')
+  const getXirsysServers = () => (
+    Axios.get('api/v1/servers/xirsys')
       .then(response => {
         if (response.s !== 'error') {
           iceServersXirsys = response.data.v;
           console.log('got xirsys');
         }
       })
-      .catch(err => console.log(err));
-  };
+      .catch(err => console.log(err))
+  );
 
   React.useEffect(() => {
     remoteVideo = document.getElementById('remote-video');
@@ -53,7 +53,7 @@ const VideoCall = () => {
     });
     navigator
       .mediaDevices
-      .getUserMedia({ audio: false, video: true })
+      .getUserMedia({ video: true })
       .then(stream => {
         console.log('setting local stream in useEffect');
         localStream = stream;
