@@ -23,18 +23,20 @@ const VideoCall = () => {
   const [selectedServer, setSelectedServer] = React.useState('xirsys');
 
   const getTwilioServers = () => {
-    Axios.get('api/v1/servers/twilio')
+    return Axios.get('api/v1/servers/twilio')
       .then(response => {
         iceServersTwilio = { iceServers: response.data };
+        console.log('got twilio');
       })
       .catch(err => console.log(err));
   };
 
   const getXirsysServers = () => {
-    Axios.get('api/v1/servers/xirsys')
+    return Axios.get('api/v1/servers/xirsys')
       .then(response => {
         if (response.s !== 'error') {
           iceServersXirsys = response.data.v;
+          console.log('got xirsys');
         }
       })
       .catch(err => console.log(err));
@@ -45,12 +47,15 @@ const VideoCall = () => {
     localVideo = document.getElementById('local-video');
 
     // set local video stream
-    getTwilioServers();
-    getXirsysServers();
+    getTwilioServers().then(getXirsysServers).then(() => {
+      console.log(iceServersXirsys);
+      console.log(iceServersTwilio);
+    });
     navigator
       .mediaDevices
       .getUserMedia({ audio: false, video: true })
       .then(stream => {
+        console.log('setting local stream in useEffect');
         localStream = stream;
         localVideo.srcObject = stream;
       })
@@ -64,9 +69,11 @@ const VideoCall = () => {
   };
 
   const createPeerConnection = (pcUserId, shouldCreateOffer) => {
-    const servers = selectedServer === 'xirsys' ? iceServersXirsys : iceServersTwilio;
+    const servers = iceServersTwilio;
+    console.log(servers);
     const peerConnection = new RTCPeerConnection(servers);
     console.log(peerConnection);
+    console.log(localStream);
     peers[pcUserId] = peerConnection;
     localStream.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
 
@@ -205,7 +212,9 @@ const VideoCall = () => {
     broadcastData({ type: LEAVE_CALL, from: userId });
   };
 
-  const handleRadioSelect = e => setSelectedServer(e.target.value);
+  const handleRadioSelect = e => {
+    setSelectedServer(e.target.value);
+  };
 
   return (
     <div className="VideoCall">
@@ -231,8 +240,8 @@ const VideoCall = () => {
             id="twilio"
             name="selectedServer"
             value="twilio"
-            checked={selectedServer === 'twilio'}
             onChange={handleRadioSelect}
+            checked={selectedServer === 'twilio'}
           />
           Twilio
         </label>
