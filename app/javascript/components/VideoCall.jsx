@@ -26,9 +26,12 @@ const VideoCall = () => {
     Axios.get('api/v1/servers/twilio')
       .then(response => {
         iceServersTwilio = { iceServers: response.data };
-        console.log('got twilio');
       })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.log('error from twilio');
+        console.log(err.message);
+        console.log(err.name);
+      })
   );
 
   const getXirsysServers = () => (
@@ -36,10 +39,13 @@ const VideoCall = () => {
       .then(response => {
         if (response.s !== 'error') {
           iceServersXirsys = response.data.v;
-          console.log('got xirsys');
         }
       })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.log('error from xirsys');
+        console.log(err.message);
+        console.log(err.name);
+      })
   );
 
   React.useEffect(() => {
