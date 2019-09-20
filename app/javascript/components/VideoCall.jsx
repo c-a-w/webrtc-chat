@@ -59,7 +59,7 @@ const VideoCall = () => {
     });
     navigator
       .mediaDevices
-      .getUserMedia({ video: true })
+      .getUserMedia({ audio: true, video: true })
       .then(stream => {
         console.log('setting local stream in useEffect');
         localStream = stream;
